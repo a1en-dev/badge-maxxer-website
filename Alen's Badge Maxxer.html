@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alen's Badge Maxxer</title>
+<style>
+  :root {
+    --bg:        #0e0f13;
+    --surface:   #16181f;
+    --elevated:  #1e2029;
+    --border:    #2a2d3a;
+    --accent:    #5865f2;
+    --accent-h:  #4752c4;
+    --success:   #3ba55d;
+    --warn:      #faa81a;
+    --danger:    #ed4245;
+    --text:      #e3e5e8;
+    --muted:     #72767d;
+    --mono:      'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans:      'Inter', system-ui, -apple-system, sans-serif;
+    --r:         8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 48px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    user-select: none;
+  }
+  .topbar-logo {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .topbar-logo svg { width: 24px; height: 24px; }
+  .topbar-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--text);
+  }
+  .topbar-pill {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: var(--elevated);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .topbar-pill.connected { color: var(--success); border-color: #2a4a35; background: #1a2e22; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  /* ── Form elements ── */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+  input[type="text"], input[type="password"], input[type="number"] {
+    width: 100%;
+    background: var(--elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  /* token field with eye toggle */
+  .token-wrap { position: relative; }
+  .token-wrap input { padding-right: 36px; }
+  .token-eye {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    display: flex; align-items: center;
+    transition: color .15s;
+  }
+  .token-eye:hover { color: var(--text); }
+
+  /* slider */
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    transition: transform .1s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  /* toggle */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-row span { font-size: 12px; color: var(--muted); }
+  .toggle {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    background: var(--border);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform .2s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* ── Buttons ── */
+  .btn {
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: var(--r);
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, opacity .15s, transform .1s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-h); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .btn-danger  { background: #2c1416; color: var(--danger); border: 1px solid #3d1a1b; }
+  .btn-danger:hover  { background: #3d1a1b; }
+  .btn-ghost   { background: var(--elevated); color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover   { color: var(--text); border-color: var(--muted); }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { flex: 1; width: auto; }
+
+  /* ── Main panel ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  /* ── Stats row ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 14px 16px;
+  }
+  .stat-card .val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.02em;
+    line-height: 1.1;
+  }
+  .stat-card .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .stat-card.accent .val { color: var(--accent); }
+  .stat-card.success .val { color: var(--success); }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .progress-header .title { font-size: 13px; font-weight: 600; }
+  .progress-header .pct  { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .progress-bar-bg {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--elevated);
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    width: 0%;
+    transition: width .4s ease;
+  }
+  .progress-sub {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Log ── */
+  .log-wrap {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .log-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .log-header span { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .log-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 11px; }
+  .log-clear:hover { color: var(--text); }
+
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log::-webkit-scrollbar { width: 4px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line { display: flex; gap: 10px; align-items: baseline; }
+  .log-ts   { color: var(--muted); flex-shrink: 0; font-size: 11px; }
+  .log-msg  { color: var(--text); word-break: break-all; }
+  .log-line.info  .log-msg { color: var(--text); }
+  .log-line.ok    .log-msg { color: var(--success); }
+  .log-line.warn  .log-msg { color: var(--warn); }
+  .log-line.error .log-msg { color: var(--danger); }
+  .log-line.dim   .log-msg { color: var(--muted); }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin .7s linear infinite; display: inline-block; }
+
+  /* ── Watermark ── */
+  .watermark {
+    position: fixed;
+    bottom: 14px;
+    right: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    opacity: .45;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: .02em;
+    z-index: 999;
+  }
+  .watermark span {
+    color: var(--accent);
+    opacity: .8;
+  }
+
+  .topbar-wm {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    opacity: .5;
+    letter-spacing: .04em;
+    margin-left: 10px;
+    user-select: none;
+    padding: 2px 7px;
+    border-left: 1px solid var(--border);
+  }
+
+  /* ── Status dot ── */
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .dot.on  { background: var(--success); box-shadow: 0 0 0 3px #1a2e2240; }
+  .dot.run { background: var(--accent);  box-shadow: 0 0 0 3px #5865f220;
+             animation: pulse 1.4s ease infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px #5865f230; }
+    50%       { box-shadow: 0 0 0 6px #5865f210; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <!-- Discord blurple wordmark icon -->
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.021.013.042.031.054a19.9 19.9 0 0 0 5.993 3.03.077.077 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.11 13.11 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" fill="#5865F2"/>
+      </svg>
+    </div>
+    <span class="topbar-title">Alen's Badge Maxxer</span>
+    <span class="topbar-wm">by alen</span>
+    <span class="topbar-pill" id="statusPill">● disconnected</span>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-label">Auth</div>
+      <div class="field">
+        <label>Discord Token</label>
+        <div class="token-wrap">
+          <input type="password" id="tokenInput" placeholder="MTA3...xyz" autocomplete="off">
+          <button class="token-eye" id="tokenEye" title="Show/hide token">
+            <svg id="eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn btn-ghost" id="verifyBtn">Verify Token</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Configuration</div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label>Target Hours</label>
+        <div class="slider-row">
+          <input type="range" id="hoursSlider" min="100" max="20000" step="100" value="6000">
+          <span class="slider-val" id="hoursVal">6,000h</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label>Game Titles</label>
+        <div class="slider-row">
+          <input type="range" id="titlesSlider" min="10" max="500" step="10" value="250">
+          <span class="slider-val" id="titlesVal">250</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label>Batch Size</label>
+        <div class="slider-row">
+          <input type="range" id="batchSlider" min="5" max="50" step="5" value="25">
+          <span class="slider-val" id="batchVal">25</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label>Delay (ms)</label>
+        <div class="slider-row">
+          <input type="range" id="delaySlider" min="200" max="2000" step="50" value="450">
+          <span class="slider-val" id="delayVal">450ms</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <div class="toggle-row">
+          <span>Hour wobble</span>
+          <button class="toggle" id="wobbleToggle" data-on="false"></button>
+        </div>
+        <div class="toggle-row">
+          <span>Dry run</span>
+          <button class="toggle" id="dryToggle" data-on="false"></button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary" id="startBtn" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        Run Spoofer
+      </button>
+      <button class="btn btn-danger" id="stopBtn" disabled>Stop</button>
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <div class="stats">
+      <div class="stat-card accent">
+        <div class="val" id="statHours">0.0h</div>
+        <div class="lbl">Hours forged</div>
+      </div>
+      <div class="stat-card success">
+        <div class="val" id="statGames">0</div>
+        <div class="lbl">Games processed</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="statBatches">0 / 0</div>
+        <div class="lbl">Batches sent</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="statUser">—</div>
+        <div class="lbl">Account</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span class="title" id="progressTitle">Waiting</span>
+        <span class="pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-sub">
+        <span id="progressSub">Configure and run to start</span>
+        <span id="progressEta"></span>
+      </div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-header">
+        <span>Console</span>
+        <button class="log-clear" id="clearLog">clear</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+
+  </main>
+
+</div>
+
+<div class="watermark">alen's badge maxxer <span>v1.0</span></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = {
+  token: '',
+  running: false,
+  verified: false,
+  stop: false,
+  userId: '',
+  username: '',
+  analyticsToken: '',
+  stats: { hours: 0, games: 0, batches: 0, totalBatches: 0 },
+  startTs: 0,
+};
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const tokenInput   = $('tokenInput');
+const tokenEye     = $('tokenEye');
+const eyeIcon      = $('eyeIcon');
+const verifyBtn    = $('verifyBtn');
+const startBtn     = $('startBtn');
+const stopBtn      = $('stopBtn');
+const hoursSlider  = $('hoursSlider');
+const hoursVal     = $('hoursVal');
+const titlesSlider = $('titlesSlider');
+const titlesVal    = $('titlesVal');
+const batchSlider  = $('batchSlider');
+const batchVal     = $('batchVal');
+const delaySlider  = $('delaySlider');
+const delayVal     = $('delayVal');
+const wobbleToggle = $('wobbleToggle');
+const dryToggle    = $('dryToggle');
+const statusPill   = $('statusPill');
+const logEl        = $('log');
+const clearLogBtn  = $('clearLog');
+
+// stats
+const statHours   = $('statHours');
+const statGames   = $('statGames');
+const statBatches = $('statBatches');
+const statUser    = $('statUser');
+
+// progress
+const progressTitle = $('progressTitle');
+const progressPct   = $('progressPct');
+const progressFill  = $('progressFill');
+const progressSub   = $('progressSub');
+const progressEta   = $('progressEta');
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg">${msg}</span>`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+clearLogBtn.addEventListener('click', () => logEl.innerHTML = '');
+
+// ── Sliders ───────────────────────────────────────────────────────────────────
+hoursSlider.addEventListener('input', () => {
+  hoursVal.textContent = Number(hoursSlider.value).toLocaleString() + 'h';
+});
+titlesSlider.addEventListener('input', () => {
+  titlesVal.textContent = titlesSlider.value;
+});
+batchSlider.addEventListener('input', () => {
+  batchVal.textContent = batchSlider.value;
+});
+delaySlider.addEventListener('input', () => {
+  delayVal.textContent = delaySlider.value + 'ms';
+});
+
+// ── Toggles ───────────────────────────────────────────────────────────────────
+function setupToggle(btn) {
+  btn.addEventListener('click', () => {
+    const on = btn.dataset.on !== 'true';
+    btn.dataset.on = String(on);
+    btn.classList.toggle('on', on);
+  });
+}
+setupToggle(wobbleToggle);
+setupToggle(dryToggle);
+
+// ── Token eye ─────────────────────────────────────────────────────────────────
+let tokenVisible = false;
+tokenEye.addEventListener('click', () => {
+  tokenVisible = !tokenVisible;
+  tokenInput.type = tokenVisible ? 'text' : 'password';
+  eyeIcon.innerHTML = tokenVisible
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+});
+
+// ── Status pill ───────────────────────────────────────────────────────────────
+function setPill(text, cls = '') {
+  statusPill.textContent = '● ' + text;
+  statusPill.className = 'topbar-pill' + (cls ? ' ' + cls : '');
+}
+
+// ── Progress update ───────────────────────────────────────────────────────────
+function updateProgress(done, total, msg) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  progressFill.style.width = pct + '%';
+  progressPct.textContent  = pct + '%';
+  progressTitle.textContent = msg || 'Running';
+  progressSub.textContent  = `Batch ${done} of ${total}`;
+
+  if (state.startTs && done > 0) {
+    const elapsed = (Date.now() - state.startTs) / 1000;
+    const rate    = done / elapsed;
+    const rem     = Math.ceil((total - done) / (rate || 1));
+    const m = Math.floor(rem / 60), s = rem % 60;
+    progressEta.textContent = `~${m}m ${s}s remaining`;
+  } else {
+    progressEta.textContent = '';
+  }
+}
+
+// ── Stats update ──────────────────────────────────────────────────────────────
+function updateStats() {
+  statHours.textContent   = state.stats.hours.toFixed(1) + 'h';
+  statGames.textContent   = state.stats.games.toString();
+  statBatches.textContent = `${state.stats.batches} / ${state.stats.totalBatches}`;
+}
+
+// ── API helpers (injected into Discord desktop context) ───────────────────────
+// These helpers call Discord's internal REST module via the token header
+// since we're running this as a script in the Discord desktop client's devtools.
+
+function buildHeaders(token) {
+  return {
+    'Authorization': token,
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0',
+    'X-Discord-Locale': 'en-US',
+  };
+}
+
+async function discordGet(token, path) {
+  const r = await fetch('https://discord.com/api/v9' + path, {
+    headers: buildHeaders(token)
+  });
+  if (!r.ok) throw Object.assign(new Error(r.statusText), { status: r.status });
+  return r.json();
+}
+
+async function discordPost(token, path, body) {
+  const r = await fetch('https://discord.com/api/v9' + path, {
+    method: 'POST',
+    headers: buildHeaders(token),
+    body: JSON.stringify(body)
+  });
+  return r;
+}
+
+// ── Verify token ──────────────────────────────────────────────────────────────
+verifyBtn.addEventListener('click', async () => {
+  const tok = tokenInput.value.trim();
+  if (!tok) { log('Paste your token first', 'warn'); return; }
+
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+  log('Verifying token…', 'dim');
+
+  try {
+    const me = await discordGet(tok, '/users/@me?with_analytics_token=true');
+    state.token          = tok;
+    state.userId         = me.id;
+    state.username       = me.username;
+    state.analyticsToken = me.analytics_token;
+    state.verified       = true;
+
+    if (!state.analyticsToken) throw new Error('No analytics token returned');
+
+    statUser.textContent = me.username + '#' + (me.discriminator || '0');
+    setPill('connected as ' + me.username, 'connected');
+    log(`Verified: ${me.username} (${me.id})`, 'ok');
+    log(`Analytics token bound`, 'ok');
+    startBtn.disabled = false;
+  } catch (err) {
+    log('Verification failed: ' + err.message, 'error');
+    setPill('invalid token');
+    state.verified = false;
+    startBtn.disabled = true;
+  }
+
+  verifyBtn.disabled = false;
+  verifyBtn.textContent = 'Verify Token';
+});
+
+// ── Core spoofer ──────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const randomId = () => crypto.randomUUID();
+
+async function generateFingerprint(uid) {
+  const enc = new TextEncoder();
+  const sha256 = async d => new Uint8Array(await crypto.subtle.digest('SHA-256', d));
+  const guid = randomId();
+  const machineUserHash = await sha256(enc.encode(guid + uid));
+  const headerHash      = await sha256(enc.encode('pe_header_'  + uid));
+  const sectionHash     = await sha256(enc.encode('pe_section_' + uid));
+  const certHash        = await sha256(enc.encode('pe_cert_'    + uid));
+
+  const buf  = new Uint8Array(146);
+  const view = new DataView(buf.buffer);
+  buf[0] = 1; buf[1] = 1;
+  view.setBigUint64(2, 65432100n, true);
+  view.setUint32(10, 1690000000, true);
+  view.setUint32(14, 0x02500000, true);
+  buf.set(headerHash, 18);
+  buf.set(machineUserHash, 50);
+  buf.set(sectionHash, 82);
+  buf.set(certHash, 114);
+
+  const key = await sha256(enc.encode(uid + 'https://discord.com/careers'));
+  for (let i = 1; i < buf.length; i++) buf[i] ^= key[(i - 1) & 31];
+
+  let binary = '';
+  for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+  return btoa(binary);
+}
+
+async function fetchCatalog(token) {
+  try {
+    const r = await fetch('https://discord.com/api/v9/applications/detectable', {
+      headers: buildHeaders(token)
+    });
+    if (r.ok) return r.json();
+  } catch (_) {}
+  const r = await fetch('https://cdn.discordapp.com/detectables/games.json');
+  return r.json();
+}
+
+function buildEvents(game, hoursPerGame, wobble, session) {
+  const drift    = wobble ? 1 + (Math.random() * .06 - .03) : 1;
+  const hours    = Math.max(0.1, hoursPerGame * drift);
+  const durMs    = Math.floor(hours * 3600 * 1000);
+  const now      = Date.now();
+  const start    = now - durMs;
+  const sid      = randomId();
+  const seq      = () => ++session.seq;
+
+  const hb = (initial, final, ts, duration) => ({
+    type: 'running_game_heartbeat',
+    properties: {
+      client_track_timestamp: ts,
+      client_heartbeat_session_id: session.heartbeatId,
+      event_sequence_number: seq(),
+      game_id: game.id,
+      game_name: game.name,
+      game_metadata: null,
+      game_executable: game.exe,
+      game_detection_enabled: true,
+      initial_heartbeat: initial,
+      final_heartbeat: final,
+      game_session_id: sid,
+      duration_tracked_ms: duration,
+      rtc_connection_id: null,
+      media_session_id: null,
+      launch_signature: session.signature,
+      client_app_state: 'focused',
+      client_send_timestamp: ts
+    }
+  });
+
+  const launch = {
+    type: 'launch_game',
+    properties: {
+      client_track_timestamp: now,
+      client_heartbeat_session_id: session.heartbeatId,
+      event_sequence_number: seq(),
+      game: game.name,
+      game_id: game.id,
+      verified: true,
+      elevated: false,
+      is_launcher: false,
+      game_platform: 'desktop',
+      detection_method: 'verified_game',
+      is_overlay_enabled: false,
+      is_overlay_game_enabled: true,
+      is_overlay_game_source: 'OOP_DEFAULT_DATABASE',
+      fullscreen_type: 'UNKNOWN',
+      hardware_display_count: 1,
+      overlay_method: 'Disabled',
+      activity_status_enabled: true,
+      activity_status_shared_guilds: [],
+      current_user_status: 'online',
+      game_detection_enabled: true,
+      executable_path: game.exe,
+      voice_channel_id: null,
+      voice_channel_type: null,
+      voice_channel_bitrate: null,
+      voice_channel_guild_id: null,
+      hidden_by_distributor: false,
+      game_metadata: null,
+      executable_fingerprint: session.fingerprint,
+      client_performance_cpu: null,
+      client_performance_memory: null,
+      cpu_core_count: null,
+      accessibility_features: 0,
+      rendered_locale: 'en-US',
+      launch_signature: session.signature,
+      client_rtc_state: null,
+      client_app_state: 'focused',
+      client_send_timestamp: now
+    }
+  };
+
+  return { hours, events: [hb(true, false, start, 0), launch, hb(false, true, now, durMs)] };
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
+startBtn.addEventListener('click', async () => {
+  if (!state.verified) return;
+
+  const cfg = {
+    totalHours: Number(hoursSlider.value),
+    titles:     Number(titlesSlider.value),
+    batchSize:  Number(batchSlider.value),
+    delay:      Number(delaySlider.value),
+    wobble:     wobbleToggle.dataset.on === 'true',
+    dryRun:     dryToggle.dataset.on === 'true',
+  };
+
+  state.running  = true;
+  state.stop     = false;
+  state.stats    = { hours: 0, games: 0, batches: 0, totalBatches: 0 };
+  state.startTs  = Date.now();
+
+  startBtn.disabled = true;
+  stopBtn.disabled  = false;
+  setPill('running…');
+  progressTitle.textContent = 'Loading catalog…';
+  progressSub.textContent   = '';
+
+  if (cfg.dryRun) log('Dry-run mode — no requests will be sent', 'warn');
+  log(`Config: ${cfg.totalHours}h across ${cfg.titles} titles, batch=${cfg.batchSize}, delay=${cfg.delay}ms`, 'dim');
+
+  try {
+    // fingerprint
+    const fp = await generateFingerprint(state.userId);
+    log('Fingerprint generated', 'dim');
+
+    // catalog
+    log('Fetching game catalog…', 'dim');
+    const rawCatalog = await fetchCatalog(state.token);
+
+    const catalog = [];
+    const seen    = new Set();
+    for (const item of rawCatalog) {
+      if (!item?.id || seen.has(item.id)) continue;
+      const winExe = item.executables?.find(e => e?.os === 'win32')?.name;
+      if (!winExe && item.executables?.length > 0) continue;
+      const exe = winExe || (item.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'game') + '.exe';
+      seen.add(item.id);
+      catalog.push({ id: String(item.id), name: item.name, exe });
+    }
+
+    if (!catalog.length) throw new Error('No valid games in catalog');
+    log(`Catalog: ${catalog.length} games available`, 'ok');
+
+    const selected      = catalog.sort(() => Math.random() - .5).slice(0, Math.min(cfg.titles, catalog.length));
+    const hoursPerGame  = cfg.totalHours / selected.length;
+    const totalBatches  = Math.ceil(selected.length / cfg.batchSize);
+    state.stats.totalBatches = totalBatches;
+
+    log(`Selected ${selected.length} games — ${hoursPerGame.toFixed(1)}h each`, 'info');
+
+    const session = {
+      heartbeatId: randomId(),
+      signature:   randomId(),
+      seq:         0,
+      fingerprint: fp,
+    };
+
+    for (let i = 0; i < totalBatches; i++) {
+      if (state.stop) { log('Stopped by user', 'warn'); break; }
+
+      const chunk  = selected.slice(i * cfg.batchSize, (i + 1) * cfg.batchSize);
+      const events = [];
+      let   chunkH = 0;
+
+      for (const game of chunk) {
+        const t = buildEvents(game, hoursPerGame, cfg.wobble, session);
+        events.push(...t.events);
+        chunkH += t.hours;
+      }
+
+      if (cfg.dryRun) {
+        state.stats.batches++;
+        state.stats.games  += chunk.length;
+        state.stats.hours  += chunkH;
+        log(`[dry-run] batch ${i+1}/${totalBatches}  +${chunkH.toFixed(1)}h`, 'dim');
+      } else {
+        try {
+          const res = await discordPost(state.token, '/science', {
+            token: state.analyticsToken,
+            events
+          });
+
+          state.stats.batches++;
+          state.stats.games  += chunk.length;
+          state.stats.hours  += chunkH;
+
+          if (res.status === 204 || res.status === 200) {
+            log(`Batch ${i+1}/${totalBatches}  +${chunkH.toFixed(1)}h  ✓`, 'ok');
+          } else {
+            log(`Batch ${i+1}/${totalBatches}  HTTP ${res.status}`, 'warn');
+          }
+        } catch (err) {
+          log(`Batch ${i+1} failed: ${err.message}`, 'error');
+          if (err.status === 429) {
+            log('Rate limited — cooling down 5s', 'warn');
+            await sleep(5000);
+          }
+        }
+      }
+
+      updateStats();
+      updateProgress(i + 1, totalBatches, 'Forging playtime…');
+
+      const jitter = cfg.delay + Math.floor((Math.random() - .5) * 150);
+      await sleep(Math.max(100, jitter));
+    }
+
+    if (!state.stop) {
+      log(`Done — ${state.stats.games} games, ${state.stats.hours.toFixed(1)}h forged`, 'ok');
+      progressTitle.textContent = 'Complete';
+      progressFill.style.width  = '100%';
+      progressPct.textContent   = '100%';
+      progressSub.textContent   = 'All batches processed';
+      progressEta.textContent   = '';
+      setPill('done', 'connected');
+    }
+
+  } catch (err) {
+    log('Fatal: ' + err.message, 'error');
+    setPill('error');
+  }
+
+  state.running     = false;
+  startBtn.disabled = false;
+  stopBtn.disabled  = true;
+});
+
+stopBtn.addEventListener('click', () => {
+  state.stop = true;
+  stopBtn.disabled = true;
+  setPill('stopping…');
+  log('Stop requested…', 'warn');
+});
+
+// ── Init log ──────────────────────────────────────────────────────────────────
+log("Alen's Badge Maxxer — paste token and verify to begin", 'dim');
+log('Run inside Discord desktop devtools (Ctrl+Shift+I) for best results', 'dim');
+</script>
+</body>
+</html>
